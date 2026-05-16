@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  username  String?   @unique
+  password  String
+  posts     Post[]
+  comments  Comment[]
+  votes     Vote[]    // Links user to their votes
+  // --- ADD THIS LINE ---
+  communities Community[] // Links the user to the communities they have joined
+  
+  createdAt   DateTime    @default(now())
+}
+
+model Community {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  posts       Post[]
+  // --- ADD THIS LINE ---
+  members     User[]   // Links the community to all its joined users
+  
+  createdAt   DateTime @default(now())
+}
+
+model Post {
+  id          Int        @id @default(autoincrement())
+  title       String
+  content     String
+  imageUrl    String?
+  votes       Int        @default(0) // Tracks total vote count value
+  createdAt   DateTime   @default(now()) // Fixed: Removed the bad attribute!
+
+  // User Relation
+  authorId    Int
+  author      User       @relation(fields: [authorId], references: [id])
+
+  // Community Relation
+  communityId Int?
+  community   Community? @relation(fields: [communityId], references: [id])
+
+  comments    Comment[]
+  votesList   Vote[]     // Links the post to individual tracking records
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String   
+  createdAt DateTime @default(now())
+
+  // User Relation
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+
+  // Post Relation
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Vote {
+  id        Int      @id @default(autoincrement())
+  type      String   // Will store "UP" or "DOWN"
+  
+  // Relations
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId]) // A user can only vote once per post
+}
